@@ -20,8 +20,8 @@ const pipelineSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'active', 'completed', 'failed'],
-    default: 'pending'
+    enum: ['created', 'active', 'completed', 'failed'],
+    default: 'created'
   },
   startedAt: {
     type: Date

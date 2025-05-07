@@ -210,6 +210,10 @@ export const getPipelineStats = async (req, res) => {
       createdBy: req.user.id,
       status: 'active' 
     });
+    const createdPipelines = await Pipeline.countDocuments({ 
+      createdBy: req.user.id,
+      status: 'created' 
+    });
     const completedPipelines = await Pipeline.countDocuments({ 
       createdBy: req.user.id,
       status: 'completed' 
@@ -222,6 +226,7 @@ export const getPipelineStats = async (req, res) => {
     res.json({
       success: true,
       stats: {
+        created: createdPipelines,
         total: totalPipelines,
         active: activePipelines,
         completed: completedPipelines,
@@ -252,31 +257,16 @@ export const startPipeline = async (req, res) => {
       });
     }
 
-    // Check if pipeline is already running
+    // If pipeline is already active, mark it as failed
     if (pipeline.status === 'active') {
-      return res.status(400).json({
-        success: false,
-        message: 'Pipeline is already running'
-      });
-    }
-
-    // Check for any other active pipelines
-    const activePipelines = await Pipeline.find({
-      status: 'active',
-      _id: { $ne: pipeline._id },
-      createdBy: req.user.id
-    });
-
-    if (activePipelines.length > 0) {
-      // Mark the pipeline as failed due to conflict
       pipeline.status = 'failed';
       pipeline.failedAt = new Date();
-      pipeline.failureReason = 'Another pipeline is currently running';
+      pipeline.failureReason = 'Pipeline was restarted while active';
       await pipeline.save();
 
       return res.status(400).json({
         success: false,
-        message: 'Another pipeline is currently running. This pipeline has been marked as failed.'
+        message: 'Pipeline was restarted while active and has been marked as failed'
       });
     }
 
@@ -285,34 +275,19 @@ export const startPipeline = async (req, res) => {
     pipeline.startedAt = new Date();
     await pipeline.save();
 
-    // Simulate pipeline completion after 35 seconds
+    // Simulate pipeline completion after 30 seconds
     setTimeout(async () => {
       try {
         const updatedPipeline = await Pipeline.findById(pipeline._id);
         if (updatedPipeline && updatedPipeline.status === 'active') {
-          // Check if any other pipeline has started in the meantime
-          const otherActivePipelines = await Pipeline.find({
-            status: 'active',
-            _id: { $ne: pipeline._id },
-            createdBy: req.user.id
-          });
-
-          if (otherActivePipelines.length > 0) {
-            // Mark this pipeline as failed due to conflict
-            updatedPipeline.status = 'failed';
-            updatedPipeline.failedAt = new Date();
-            updatedPipeline.failureReason = 'Another pipeline was started before completion';
-          } else {
-            // Complete the pipeline
-            updatedPipeline.status = 'completed';
-            updatedPipeline.completedAt = new Date();
-          }
+          updatedPipeline.status = 'completed';
+          updatedPipeline.completedAt = new Date();
           await updatedPipeline.save();
         }
       } catch (error) {
         console.error('Error completing pipeline:', error);
       }
-    }, 35000);
+    }, 30000);
 
     res.json({
       success: true,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { VscEye, VscEyeClosed } from 'react-icons/vsc';
+import { VscEye, VscEyeClosed, VscEdit, VscTrash } from 'react-icons/vsc';
 import axios from 'axios';
 
 // Credential types configuration
@@ -114,6 +114,8 @@ function ManageCredentials() {
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [revealedSecrets, setRevealedSecrets] = useState({});
+  const [editingCredential, setEditingCredential] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
 
   // Form State
   const [credName, setCredName] = useState('');
@@ -240,6 +242,66 @@ function ManageCredentials() {
     setRevealedSecrets(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleEdit = (credential) => {
+    setEditingCredential(credential);
+    setEditFormData({
+      name: credential.name,
+      type: credential.type,
+      credentials: { ...credential.credentials }
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!token) {
+      setError('Please login to update credentials');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.put(
+        `${API_URL}/credentials/${editingCredential._id}`,
+        editFormData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setCredentialsList(prev => 
+          prev.map(cred => 
+            cred._id === editingCredential._id ? response.data.credential : cred
+          )
+        );
+        setEditingCredential(null);
+        setEditFormData({});
+      } else {
+        setError(response.data.message || 'Failed to update credential');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update credential');
+      console.error('Error updating credential:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditFieldChange = (fieldName, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      credentials: {
+        ...prev.credentials,
+        [fieldName]: value
+      }
+    }));
+  };
+
   // --- Helper Functions --- 
   const formatFieldName = (fieldName) => {
     return fieldName
@@ -364,7 +426,91 @@ function ManageCredentials() {
         </div>
       )}
 
-      {/* --- Credentials List --- */}
+      {/* Edit Modal */}
+      {editingCredential && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-750 p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4">Edit Credential</h2>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="editCredName" className={labelStyles}>Credential Name</label>
+                <input
+                  type="text"
+                  id="editCredName"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                  className={inputStyles}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="editCredType" className={labelStyles}>Type</label>
+                <select
+                  id="editCredType"
+                  value={editFormData.type}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, type: e.target.value }))}
+                  className={inputStyles}
+                  disabled
+                >
+                  {Object.entries(credentialTypes).map(([key, { name }]) => (
+                    <option key={key} value={key}>{name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {credentialTypes[editFormData.type]?.fields.map(fieldName => (
+                <div key={fieldName}>
+                  <label htmlFor={`edit_${fieldName}`} className={labelStyles}>
+                    {formatFieldName(fieldName)}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={isSensitiveField(fieldName) ? 'password' : 'text'}
+                      id={`edit_${fieldName}`}
+                      value={editFormData.credentials[fieldName] || ''}
+                      onChange={(e) => handleEditFieldChange(fieldName, e.target.value)}
+                      required
+                      className={inputStyles}
+                    />
+                    {isSensitiveField(fieldName) && (
+                      <button
+                        type="button"
+                        onClick={() => toggleRevealSecret(`edit_${fieldName}`)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        {revealedSecrets[`edit_${fieldName}`] ? <VscEyeClosed /> : <VscEye />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex justify-end gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingCredential(null);
+                    setEditFormData({});
+                  }}
+                  className={`${buttonStyles} bg-gray-600 hover:bg-gray-700`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`${buttonStyles} bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isLoading ? 'Updating...' : 'Update Credential'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Credentials List */}
       <h2 className="text-2xl font-semibold mb-4">Saved Credentials</h2>
       {isLoading && !credentialsList.length && <p>Loading credentials...</p>}
       {error && <p className="text-red-400">Error: {error}</p>}
@@ -375,39 +521,50 @@ function ManageCredentials() {
           <table className="min-w-full divide-y divide-gray-600">
             <thead className="bg-gray-700">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Type</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Details</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Last Updated</th>
-                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-1/6">Name</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-1/6">Type</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-2/6">Details</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-1/6">Last Updated</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider w-1/6">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-gray-800 divide-y divide-gray-600">
               {credentialsList.map((credential) => (
-                <tr key={credential._id}>
+                <tr key={credential._id} className="hover:bg-gray-700/50 transition-colors duration-200">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{credential.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{credentialTypes[credential.type]?.name || credential.type}</td>
                   <td className="px-6 py-4 text-sm text-gray-300">
-                    <ul className="list-disc list-inside space-y-1">
-                      {Object.keys(credential.credentials || {}).map(fieldName => (
-                        <li key={fieldName} className="flex items-center space-x-2">
-                          <span className="font-semibold capitalize">{formatFieldName(fieldName)}:</span>
-                          {renderFieldValue(credential, fieldName)}
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="max-h-32 overflow-y-auto">
+                      <ul className="list-disc list-inside space-y-1">
+                        {Object.keys(credential.credentials || {}).map(fieldName => (
+                          <li key={fieldName} className="flex items-center space-x-2">
+                            <span className="font-semibold capitalize">{formatFieldName(fieldName)}:</span>
+                            {renderFieldValue(credential, fieldName)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                     {new Date(credential.updatedAt).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
-                    <button 
-                      onClick={() => handleDelete(credential._id)} 
-                      disabled={isLoading} 
-                      className="text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Delete
-                    </button>
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    <div className="flex items-center justify-center space-x-3">
+                      <button 
+                        onClick={() => handleEdit(credential)}
+                        className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                        title="Edit credential"
+                      >
+                        <VscEdit className="w-5 h-5" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(credential._id)}
+                        className="text-red-400 hover:text-red-300 transition-colors duration-200"
+                        title="Delete credential"
+                      >
+                        <VscTrash className="w-5 h-5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

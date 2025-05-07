@@ -17,6 +17,14 @@ const Dashboard = () => {
     setActiveSection('plugins');
   };
 
+  const handleLogout = () => {
+    // Clear auth data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    // Redirect to login page
+    navigate('/login');
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       case 'plugins':
@@ -86,6 +94,15 @@ const Dashboard = () => {
               : 'bg-blue-800/30 text-blue-200 hover:bg-blue-700/50'}`}
           >
             Plugins
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-md transition-colors bg-red-500/20 text-red-200 hover:bg-red-500/30 flex items-center space-x-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-3 1a1 1 0 10-2 0v3a1 1 0 102 0V8zM8 9a1 1 0 00-2 0v3a1 1 0 102 0V9z" clipRule="evenodd" />
+            </svg>
+            <span>Logout</span>
           </button>
         </div>
       </div>

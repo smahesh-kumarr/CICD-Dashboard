@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { VscSourceControl, VscPlay, VscDebugStart, VscTrash } from 'react-icons/vsc';
+import { VscSourceControl, VscPlay, VscDebugStart, VscTrash, VscRefresh } from 'react-icons/vsc';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -9,16 +9,14 @@ const PipelineList = () => {
   const [pipelines, setPipelines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pipelineErrors, setPipelineErrors] = useState({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  const tabs = ['ALL', 'ACTIVE', 'COMPLETED', 'FAILED'];
+  const tabs = ['ALL', 'CREATED', 'ACTIVE', 'COMPLETED', 'FAILED'];
 
-  useEffect(() => {
-    fetchPipelines();
-  }, [activeTab]);
-
-  const fetchPipelines = async () => {
+  const fetchPipelines = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Not authenticated');
@@ -44,22 +42,28 @@ const PipelineList = () => {
       setError(error.response?.data?.message || 'Failed to fetch pipelines');
       console.error('Error fetching pipelines:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
+      setIsRefreshing(false);
     }
   };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchPipelines(true);
+  };
+
+  useEffect(() => {
+    fetchPipelines(true);
+    // Set up polling every 5 seconds to update pipeline statuses without loading state
+    const interval = setInterval(() => fetchPipelines(false), 5000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   const handleStartPipeline = async (pipelineId) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Not authenticated');
-        return;
-      }
-
-      // Check if pipeline is already running
-      const pipeline = pipelines.find(p => p._id === pipelineId);
-      if (pipeline.status === 'active') {
-        setError('Pipeline is already running');
         return;
       }
 
@@ -72,18 +76,34 @@ const PipelineList = () => {
       if (response.data.success) {
         // Update local state
         setPipelines(prev => prev.map(p => 
-          p._id === pipelineId ? { ...p, status: 'active' } : p
+          p._id === pipelineId ? { ...p, status: 'active', startedAt: new Date() } : p
         ));
-        
-        // Simulate pipeline completion after 35 seconds
+        // Clear any existing error for this pipeline
+        setPipelineErrors(prev => ({ ...prev, [pipelineId]: null }));
+      } else {
+        // If the pipeline was restarted while active, update to failed state
+        setPipelines(prev => prev.map(p => 
+          p._id === pipelineId ? { ...p, status: 'failed', failedAt: new Date() } : p
+        ));
+        // Set error message for this specific pipeline
+        setPipelineErrors(prev => ({ 
+          ...prev, 
+          [pipelineId]: 'Pipeline was restarted while active' 
+        }));
+        // Clear error after 5 seconds
         setTimeout(() => {
-          setPipelines(prev => prev.map(p => 
-            p._id === pipelineId ? { ...p, status: 'completed' } : p
-          ));
-        }, 35000);
+          setPipelineErrors(prev => ({ ...prev, [pipelineId]: null }));
+        }, 5000);
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to start pipeline');
+      setPipelineErrors(prev => ({ 
+        ...prev, 
+        [pipelineId]: error.response?.data?.message || 'Failed to start pipeline' 
+      }));
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setPipelineErrors(prev => ({ ...prev, [pipelineId]: null }));
+      }, 5000);
       console.error('Error starting pipeline:', error);
     }
   };
@@ -115,6 +135,8 @@ const PipelineList = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'created':
+        return 'text-blue-400';
       case 'active':
         return 'text-yellow-400';
       case 'completed':
@@ -151,13 +173,22 @@ const PipelineList = () => {
             <VscSourceControl className="text-2xl text-blue-400" />
             <h3 className="text-xl font-semibold text-white">Pipelines</h3>
           </div>
-          <button 
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 transition-colors duration-200"
-            onClick={() => window.location.href = '/create-pipeline'}
-          >
-            <VscPlay />
-            New Pipeline
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleRefresh}
+              className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors duration-200"
+              title="Refresh pipelines"
+            >
+              <VscRefresh className={`text-xl ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button 
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 transition-colors duration-200"
+              onClick={() => window.location.href = '/create-pipeline'}
+            >
+              <VscPlay />
+              New Pipeline
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -200,25 +231,33 @@ const PipelineList = () => {
                     <p className="text-sm text-gray-400">
                       {pipeline.environment} • {pipeline.type}
                     </p>
+                    {pipelineErrors[pipeline._id] && (
+                      <p className="text-sm text-red-400 mt-1">
+                        {pipelineErrors[pipeline._id]}
+                      </p>
+                    )}
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-6">
                   <div className="text-right">
                     <p className="text-sm text-gray-400">Status</p>
-                    <p className="text-white capitalize">{pipeline.status}</p>
+                    <p className={`capitalize ${getStatusColor(pipeline.status)}`}>
+                      {pipeline.status}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleStartPipeline(pipeline._id)}
-                      disabled={pipeline.status === 'active'}
-                      className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors duration-200"
+                      title={pipeline.status === 'active' ? 'Click to mark as failed' : 'Start pipeline'}
                     >
                       <VscDebugStart />
                     </button>
                     <button 
                       onClick={() => handleDeletePipeline(pipeline._id)}
                       className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors duration-200"
+                      title="Delete pipeline"
                     >
                       <VscTrash />
                     </button>

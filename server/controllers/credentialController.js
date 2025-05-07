@@ -155,21 +155,80 @@ export const getCredentialsByType = async (req, res) => {
 export const updateCredential = async (req, res) => {
   try {
     const { id } = req.params;
+    const { name, credentials } = req.body;
     console.log('Updating credential:', id, 'for user:', req.user._id);
 
-    const credential = await Credential.findOneAndUpdate(
-      { _id: id, createdBy: req.user._id },
-      req.body,
-      { new: true, runValidators: true }
-    );
-    
-    if (!credential) {
+    // Validate required fields
+    if (!name || !credentials) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name and credentials are required'
+      });
+    }
+
+    // Find the existing credential to get its type
+    const existingCredential = await Credential.findOne({ 
+      _id: id, 
+      createdBy: req.user._id 
+    });
+
+    if (!existingCredential) {
       console.log('Credential not found');
       return res.status(404).json({
         success: false,
         message: 'Credential not found'
       });
     }
+
+    // Validate required fields based on type
+    const typeValidations = {
+      github: ['token'],
+      docker: ['username', 'password', 'registryUrl'],
+      aws: ['accessKeyId', 'secretAccessKey', 'region'],
+      azure: ['clientId', 'clientSecret', 'tenantId', 'registryUrl'],
+      gcp: ['projectId', 'serviceAccountKey'],
+      sonarqube: ['url', 'token'],
+      coverity: ['url', 'username', 'password'],
+      snyk: ['token'],
+      owasp: ['url', 'apiKey'],
+      anchore: ['url', 'username', 'password'],
+      aqua: ['url', 'username', 'password'],
+      clair: ['url', 'username', 'password'],
+      'aws-eks': ['clusterName', 'region', 'accessKeyId', 'secretAccessKey'],
+      'azure-aks': ['clusterName', 'resourceGroup', 'subscriptionId', 'clientId', 'clientSecret', 'tenantId'],
+      'gcp-gke': ['clusterName', 'projectId', 'zone', 'serviceAccountKey'],
+      jenkins: ['username', 'token'],
+      kubernetes: ['endpoint', 'caCert', 'token']
+    };
+
+    const requiredFields = typeValidations[existingCredential.type];
+    const missingFields = requiredFields.filter(field => !credentials[field]);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields for ${existingCredential.type}: ${missingFields.join(', ')}`
+      });
+    }
+
+    // Create update object with only the required fields
+    const updateData = {
+      name,
+      credentials: {}
+    };
+
+    // Only include the fields that are defined in the credentials object
+    requiredFields.forEach(field => {
+      if (credentials[field]) {
+        updateData.credentials[field] = credentials[field];
+      }
+    });
+
+    const credential = await Credential.findOneAndUpdate(
+      { _id: id, createdBy: req.user._id },
+      updateData,
+      { new: true, runValidators: true }
+    );
     
     console.log('Credential updated successfully:', credential);
     res.status(200).json({
