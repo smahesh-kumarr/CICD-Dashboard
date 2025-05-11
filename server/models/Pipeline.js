@@ -18,6 +18,32 @@ const pipelineSchema = new mongoose.Schema({
     enum: ['simple', 'multi-branch'],
     default: 'simple'
   },
+  organization: {
+    id: {
+      type: String,
+      required: [true, 'Organization ID is required'],
+      trim: true
+    },
+    name: {
+      type: String,
+      required: [true, 'Organization name is required'],
+      trim: true
+    }
+  },
+  team: {
+    name: {
+      type: String,
+      required: [true, 'Team name is required'],
+      enum: ['development', 'devops', 'operations', 'qa'],
+      default: 'development'
+    },
+    email: {
+      type: String,
+      required: [true, 'Team email is required'],
+      trim: true,
+      lowercase: true
+    }
+  },
   status: {
     type: String,
     enum: ['created', 'active', 'completed', 'failed'],
@@ -43,16 +69,18 @@ const pipelineSchema = new mongoose.Schema({
     },
     repository: {
       type: String,
-      required: true
+      required: true,
+      trim: true
     },
     jenkinsfilePath: {
       type: String,
+      required: true,
       default: 'Jenkinsfile'
     },
-    branches: {
-      type: [String],
-      default: ['main']
-    }
+    branches: [{
+      type: String,
+      required: true
+    }]
   },
   testingTools: {
     unitTesting: {
@@ -131,6 +159,14 @@ const pipelineSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Credential',
       default: null
+    },
+    imageName: {
+      type: String,
+      trim: true
+    },
+    tag: {
+      type: String,
+      trim: true
     }
   },
   continuousDeployment: {
@@ -149,10 +185,56 @@ const pipelineSchema = new mongoose.Schema({
       default: null
     }
   },
+  aws: {
+    credentialId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Credential'
+    },
+    region: {
+      type: String,
+      trim: true
+    },
+    service: {
+      type: String,
+      trim: true
+    }
+  },
+  sonarqube: {
+    credentialId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Credential'
+    },
+    projectKey: {
+      type: String,
+      trim: true
+    }
+  },
+  kubernetes: {
+    credentialId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Credential'
+    },
+    namespace: {
+      type: String,
+      trim: true
+    },
+    cluster: {
+      type: String,
+      trim: true
+    }
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
@@ -163,5 +245,7 @@ pipelineSchema.index({ createdBy: 1, status: 1 });
 pipelineSchema.index({ startedAt: 1 });
 pipelineSchema.index({ completedAt: 1 });
 pipelineSchema.index({ failedAt: 1 });
+pipelineSchema.index({ 'organization.id': 1 });
+pipelineSchema.index({ 'team.name': 1 });
 
 export default mongoose.model('Pipeline', pipelineSchema); 

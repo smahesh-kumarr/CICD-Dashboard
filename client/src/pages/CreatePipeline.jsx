@@ -29,6 +29,14 @@ const CreatePipeline = () => {
     name: '',
     environment: 'dev',
     type: 'simple',
+    organization: {
+      id: '',
+      name: ''
+    },
+    team: {
+      name: 'development',
+      email: ''
+    },
     github: {
       credentialId: '',
       repository: '',
@@ -82,15 +90,14 @@ const CreatePipeline = () => {
 
     const fetchCredentials = async () => {
       try {
-        // Simulated API call with mock data
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setCredentials([
-          { _id: 'cred1', name: 'GitHub Token - User A', type: 'github' },
-          { _id: 'cred2', name: 'DockerHub Pass - User B', type: 'docker' },
-          { _id: 'cred3', name: 'AWS Key - Project X', type: 'aws' },
-          { _id: 'cred4', name: 'SonarQube - Main', type: 'sonarqube' },
-          { _id: 'cred5', name: 'K8s Cluster - Dev', type: 'kubernetes' },
-        ]);
+        const response = await axios.get(`${API_BASE_URL}/credentials`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.success) {
+          setCredentials(response.data.credentials);
+        } else {
+          setError('Failed to fetch credentials');
+        }
       } catch (error) {
         setError('Failed to fetch credentials');
         console.error('Error fetching credentials:', error);
@@ -142,6 +149,13 @@ const CreatePipeline = () => {
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('Not authenticated');
+      }
+
+      // Validate organization and team fields
+      if (!formData.organization.id || !formData.organization.name || !formData.team.email) {
+        setError('Organization and team details are required');
+        setLoading(false);
+        return;
       }
 
       const response = await axios.post(
@@ -386,6 +400,66 @@ const CreatePipeline = () => {
                       placeholder="e.g., Frontend Production Pipeline"
                     />
                   </div>
+
+                  {/* Organization Details */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Organization ID *</label>
+                      <input
+                        type="text"
+                        name="organization.id"
+                        value={formData.organization.id}
+                        onChange={handleChange}
+                        required
+                        className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                        placeholder="e.g., org_123"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name *</label>
+                      <input
+                        type="text"
+                        name="organization.name"
+                        value={formData.organization.name}
+                        onChange={handleChange}
+                        required
+                        className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                        placeholder="e.g., Acme Corp"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Team Details */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Team *</label>
+                      <select
+                        name="team.name"
+                        value={formData.team.name}
+                        onChange={handleChange}
+                        required
+                        className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm bg-white"
+                      >
+                        <option value="development">Development</option>
+                        <option value="devops">DevOps</option>
+                        <option value="operations">Operations</option>
+                        <option value="qa">QA</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Team Email *</label>
+                      <input
+                        type="email"
+                        name="team.email"
+                        value={formData.team.email}
+                        onChange={handleChange}
+                        required
+                        className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                        placeholder="team@organization.com"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Environment *</label>
                     <select

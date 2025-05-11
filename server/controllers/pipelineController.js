@@ -1,4 +1,5 @@
 import Pipeline from '../models/Pipeline.js';
+import Credential from '../models/Credential.js';
 
 // Get all pipelines with optional status filter
 export const getPipelines = async (req, res) => {
@@ -11,6 +12,12 @@ export const getPipelines = async (req, res) => {
     }
 
     const pipelines = await Pipeline.find(query)
+      .populate('github.credentialId')
+      .populate('docker.credentialId')
+      .populate('aws.credentialId')
+      .populate('sonarqube.credentialId')
+      .populate('kubernetes.credentialId')
+      .populate('createdBy', 'email name')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -21,7 +28,8 @@ export const getPipelines = async (req, res) => {
     console.error('Error getting pipelines:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get pipelines'
+      message: 'Failed to get pipelines',
+      error: error.message
     });
   }
 };
@@ -32,7 +40,13 @@ export const getPipeline = async (req, res) => {
     const pipeline = await Pipeline.findOne({
       _id: req.params.id,
       createdBy: req.user.id
-    });
+    })
+      .populate('github.credentialId')
+      .populate('docker.credentialId')
+      .populate('aws.credentialId')
+      .populate('sonarqube.credentialId')
+      .populate('kubernetes.credentialId')
+      .populate('createdBy', 'email name');
 
     if (!pipeline) {
       return res.status(404).json({
@@ -49,7 +63,8 @@ export const getPipeline = async (req, res) => {
     console.error('Error getting pipeline:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get pipeline'
+      message: 'Failed to get pipeline',
+      error: error.message
     });
   }
 };
@@ -59,70 +74,115 @@ export const createPipeline = async (req, res) => {
   try {
     const {
       name,
-      environment = 'dev',
-      type = 'simple',
+      environment,
+      type,
+      organization,
+      team,
       github,
-      testingTools,
-      security,
       docker,
-      continuousDeployment
+      aws,
+      sonarqube,
+      kubernetes
     } = req.body;
 
     // Validate required fields
-    if (!name || !github || !github.credentialId || !github.repository) {
+    if (!name || !environment || !type || !organization || !team || !github) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: name, github credentials, and repository are required'
+        message: 'Missing required fields'
       });
     }
 
-    // Create pipeline data with proper structure
-    const pipelineData = {
+    // Validate organization fields
+    if (!organization.id || !organization.name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Organization ID and name are required'
+      });
+    }
+
+    // Validate team fields
+    if (!team.name || !team.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Team name and email are required'
+      });
+    }
+
+    // Validate GitHub fields
+    if (!github.credentialId || !github.repository || !github.branches) {
+      return res.status(400).json({
+        success: false,
+        message: 'GitHub credential, repository, and branches are required'
+      });
+    }
+
+    // Verify that the GitHub credential exists
+    const githubCredential = await Credential.findById(github.credentialId);
+    if (!githubCredential) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid GitHub credential'
+      });
+    }
+
+    // Verify other credentials if provided
+    if (docker?.credentialId) {
+      const dockerCredential = await Credential.findById(docker.credentialId);
+      if (!dockerCredential) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid Docker credential'
+        });
+      }
+    }
+
+    if (aws?.credentialId) {
+      const awsCredential = await Credential.findById(aws.credentialId);
+      if (!awsCredential) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid AWS credential'
+        });
+      }
+    }
+
+    if (sonarqube?.credentialId) {
+      const sonarqubeCredential = await Credential.findById(sonarqube.credentialId);
+      if (!sonarqubeCredential) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid SonarQube credential'
+        });
+      }
+    }
+
+    if (kubernetes?.credentialId) {
+      const kubernetesCredential = await Credential.findById(kubernetes.credentialId);
+      if (!kubernetesCredential) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid Kubernetes credential'
+        });
+      }
+    }
+
+    // Create the pipeline
+    const pipeline = new Pipeline({
       name,
       environment,
       type,
-      github: {
-        credentialId: github.credentialId,
-        repository: github.repository,
-        jenkinsfilePath: github.jenkinsfilePath || 'Jenkinsfile',
-        branches: github.branches || ['main']
-      },
-      testingTools: {
-        unitTesting: testingTools?.unitTesting || false,
-        integrationTesting: testingTools?.integrationTesting || false,
-        e2eTesting: testingTools?.e2eTesting || false
-      },
-      security: {
-        staticAnalysis: {
-          enabled: security?.staticAnalysis?.enabled || false,
-          tools: security?.staticAnalysis?.tools || [],
-          credentialId: security?.staticAnalysis?.credentialId || null
-        },
-        dependencyCheck: {
-          enabled: security?.dependencyCheck?.enabled || false,
-          tool: security?.dependencyCheck?.tool || null,
-          credentialId: security?.dependencyCheck?.credentialId || null
-        },
-        containerScanning: {
-          enabled: security?.containerScanning?.enabled || false,
-          tools: security?.containerScanning?.tools || [],
-          credentialId: security?.containerScanning?.credentialId || null
-        }
-      },
-      docker: {
-        buildType: docker?.buildType || 'both',
-        registry: docker?.registry || 'dockerhub',
-        credentialId: docker?.credentialId || null
-      },
-      continuousDeployment: {
-        enabled: continuousDeployment?.enabled || false,
-        platform: continuousDeployment?.platform || null,
-        credentialId: continuousDeployment?.credentialId || null
-      },
-      createdBy: req.user.id
-    };
+      organization,
+      team,
+      github,
+      docker,
+      aws,
+      sonarqube,
+      kubernetes,
+      createdBy: req.user._id,
+    });
 
-    const pipeline = await Pipeline.create(pipelineData);
+    await pipeline.save();
 
     res.status(201).json({
       success: true,
@@ -142,17 +202,20 @@ export const createPipeline = async (req, res) => {
 // Update a pipeline
 export const updatePipeline = async (req, res) => {
   try {
-    const pipeline = await Pipeline.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        createdBy: req.user.id
-      },
-      req.body,
-      {
-        new: true,
-        runValidators: true
-      }
-    );
+    const {
+      name,
+      environment,
+      type,
+      organization,
+      team,
+      github,
+      docker,
+      aws,
+      sonarqube,
+      kubernetes
+    } = req.body;
+
+    const pipeline = await Pipeline.findById(req.params.id);
 
     if (!pipeline) {
       return res.status(404).json({
@@ -161,15 +224,31 @@ export const updatePipeline = async (req, res) => {
       });
     }
 
+    // Update fields
+    if (name) pipeline.name = name;
+    if (environment) pipeline.environment = environment;
+    if (type) pipeline.type = type;
+    if (organization) pipeline.organization = organization;
+    if (team) pipeline.team = team;
+    if (github) pipeline.github = github;
+    if (docker) pipeline.docker = docker;
+    if (aws) pipeline.aws = aws;
+    if (sonarqube) pipeline.sonarqube = sonarqube;
+    if (kubernetes) pipeline.kubernetes = kubernetes;
+
+    await pipeline.save();
+
     res.json({
       success: true,
+      message: 'Pipeline updated successfully',
       data: pipeline
     });
   } catch (error) {
     console.error('Error updating pipeline:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update pipeline'
+      message: 'Failed to update pipeline',
+      error: error.message
     });
   }
 };
@@ -177,10 +256,7 @@ export const updatePipeline = async (req, res) => {
 // Delete a pipeline
 export const deletePipeline = async (req, res) => {
   try {
-    const pipeline = await Pipeline.findOneAndDelete({
-      _id: req.params.id,
-      createdBy: req.user.id
-    });
+    const pipeline = await Pipeline.findById(req.params.id);
 
     if (!pipeline) {
       return res.status(404).json({
@@ -188,6 +264,8 @@ export const deletePipeline = async (req, res) => {
         message: 'Pipeline not found'
       });
     }
+
+    await pipeline.remove();
 
     res.json({
       success: true,
@@ -197,7 +275,8 @@ export const deletePipeline = async (req, res) => {
     console.error('Error deleting pipeline:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete pipeline'
+      message: 'Failed to delete pipeline',
+      error: error.message
     });
   }
 };
