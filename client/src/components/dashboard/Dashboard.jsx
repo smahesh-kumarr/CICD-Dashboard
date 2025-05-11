@@ -71,7 +71,7 @@ const Dashboard = () => {
       {/* Header Section */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">Welcome to TechCorp</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Welcome to ShipTogether</h1>
           <p className="text-xl text-blue-200">
             {user.team} Department Dashboard - {user.fullName}
           </p>

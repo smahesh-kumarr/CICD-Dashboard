@@ -1,46 +1,159 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const Welcome = () => {
-  const devopsQuote = "DevOps - Where Automation Meets Innovation";
+  const appName = "ShipTogether";
+  const tagline = "Unify Your CI/CD, Empower Your Team.";
+
+  // Subtle animation for hero section
+  const heroVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
+  };
+
+  const buttonVariants = {
+    hover: { scale: 1.05, boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)" },
+    tap: { scale: 0.95 },
+  };
+
+  const statVariants = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.5, delay: 0.2, ease: "easeOut" },
+    },
+  };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background with DevOps-themed gradient and pattern */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-20"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.2)_0%,rgba(0,0,0,0.8)_100%)]"></div>
-      </div>
-
-      {/* Content */}
-      <div className="relative min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-4xl w-full bg-white/10 backdrop-blur-sm rounded-2xl p-12 shadow-2xl border border-white/10">
-          <div className="text-center space-y-8">
-            <div className="space-y-4">
-              <h1 className="text-6xl font-bold text-white mb-4 font-mono tracking-tight">
-                DevOps Pipeline Manager
+    <div className="min-h-screen bg-gray-50 font-sans">
+      {/* Extended Hero Section */}
+      <div className="bg-gradient-to-br from-blue-900 to-blue-700 text-white relative">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+          <motion.div
+            className="text-center lg:text-left lg:flex lg:items-center lg:justify-between"
+            variants={heroVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {/* Text Content */}
+            <div className="lg:max-w-lg">
+              <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
+                Welcome to <span className="text-yellow-300">{appName}</span>
               </h1>
-              <p className="text-2xl text-blue-200 italic font-light">
-                "{devopsQuote}"
+              <p className="mt-4 text-xl sm:text-2xl font-light">
+                {tagline}
+              </p>
+              <p className="mt-6 text-base sm:text-lg leading-relaxed">
+                ShipTogether streamlines your CI/CD pipelines with seamless automation, real-time monitoring, and team collaboration tools. Deliver faster, together.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center lg:justify-start">
+                <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+                  <Link
+                    to="/login"
+                    className="block w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-center"
+                  >
+                    Login
+                  </Link>
+                </motion.div>
+                <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+                  <Link
+                    to="/register"
+                    className="block w-full sm:w-auto bg-white hover:bg-gray-100 text-blue-900 font-semibold py-3 px-8 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-center"
+                  >
+                    Register
+                  </Link>
+                </motion.div>
+              </div>
+            </div>
+            {/* Placeholder Illustration */}
+            <div className="mt-12 lg:mt-0 lg:max-w-md flex justify-center">
+              <img
+                src="/images/Devops.jpg"
+                alt="CI/CD Pipeline"
+                className="w-full max-w-xs sm:max-w-sm"
+              />
+            </div>
+          </motion.div>
+
+          {/* Extended Sub-Section: CI/CD Stats */}
+          <motion.div
+            className="mt-16 grid gap-8 sm:grid-cols-3"
+            variants={statVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="text-center">
+              <h3 className="text-4xl font-bold text-yellow-300">50%</h3>
+              <p className="mt-2 text-lg">Faster Deployments</p>
+              <p className="mt-1 text-sm text-gray-200">
+                Automate pipelines to reduce deployment time significantly.
               </p>
             </div>
-            
-            <div className="flex justify-center space-x-8 mt-12">
-              <Link
-                to="/login"
-                className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/20"
-              >
-                <span className="relative z-10">Login</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-              <Link
-                to="/register"
-                className="group relative px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/20"
-              >
-                <span className="relative z-10">Register</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
+            <div className="text-center">
+              <h3 className="text-4xl font-bold text-yellow-300">30%</h3>
+              <p className="mt-2 text-lg">Error Reduction</p>
+              <p className="mt-1 text-sm text-gray-200">
+                Catch issues early with real-time pipeline monitoring.
+              </p>
             </div>
+            <div className="text-center">
+              <h3 className="text-4xl font-bold text-yellow-300">2x</h3>
+              <p className="mt-2 text-lg">Team Efficiency</p>
+              <p className="mt-1 text-sm text-gray-200">
+                Collaborate seamlessly with integrated tools.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Wave Divider */}
+        <div className="absolute bottom-0 w-full overflow-hidden leading-none">
+          <svg
+            className="relative block w-full h-16 sm:h-24 text-gray-50"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 1440 100"
+            preserveAspectRatio="none"
+          >
+            <path
+              fill="currentColor"
+              d="M0,0 C280,100 720,0 1440,100 L1440,100 L0,100 Z"
+            />
+          </svg>
+        </div>
+      </div>
+
+      {/* CI/CD Features Section */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h2 className="text-3xl sm:text-4xl font-semibold text-gray-900 text-center">
+          Why Choose ShipTogether?
+        </h2>
+        <p className="mt-4 text-lg text-gray-600 text-center max-w-2xl mx-auto">
+          Optimize your CI/CD workflows with tools designed for speed, reliability, and collaboration.
+        </p>
+        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <h3 className="text-xl font-semibold text-gray-900">Automated Pipelines</h3>
+            <p className="mt-2 text-gray-600">
+              Configure and automate your build, test, and deploy stages with minimal setup.
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <h3 className="text-xl font-semibold text-gray-900">Real-Time Monitoring</h3>
+            <p className="mt-2 text-gray-600">
+              Track pipeline performance and catch issues instantly with live Dashboards.
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <h3 className="text-xl font-semibold text-gray-900">Team Collaboration</h3>
+            <p className="mt-2 text-gray-600">
+              Enable seamless communication and role-based access for your DevOps team.
+            </p>
           </div>
         </div>
       </div>
@@ -48,4 +161,4 @@ const Welcome = () => {
   );
 };
 
-export default Welcome; 
+export default Welcome;

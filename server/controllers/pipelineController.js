@@ -6,8 +6,14 @@ import jwt from 'jsonwebtoken';
 // Get all pipelines with optional status filter
 export const getPipelines = async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, team } = req.query;
     const query = { orgId: req.user.orgId };
+    
+    // If team is specified, filter by team
+    if (team) {
+      query['team.name'] = team;
+    }
+    
     if (status) {
       query.status = status;
     }
@@ -173,7 +179,7 @@ export const createPipeline = async (req, res) => {
         return res.status(400).json({
           success: false,
           message: 'Invalid Kubernetes credential'
-        });
+      });
       }
     }
 

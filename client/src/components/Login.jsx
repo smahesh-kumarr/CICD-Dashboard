@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { loginUser } from '../services/api';
 
 const Login = () => {
@@ -16,7 +17,6 @@ const Login = () => {
   useEffect(() => {
     if (location.state?.message) {
       setSuccessMessage(location.state.message);
-      // Clear the message from location state
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -38,11 +38,8 @@ const Login = () => {
       const response = await loginUser(formData);
       
       if (response.success) {
-        // Store token in localStorage
         localStorage.setItem('token', response.token);
-        // Store user data in localStorage
         localStorage.setItem('user', JSON.stringify(response.user));
-        // Redirect to dashboard
         navigate('/dashboard');
       }
     } catch (error) {
@@ -52,83 +49,151 @@ const Login = () => {
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
+  };
+
+  const contentVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.6, delay: 0.2, ease: "easeOut" },
+    },
+  };
+
+  const buttonVariants = {
+    hover: { scale: 1.05, boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.15)" },
+    tap: { scale: 0.95 },
+  };
+
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background with DevOps-themed gradient and pattern */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-20"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.2)_0%,rgba(0,0,0,0.8)_100%)]"></div>
-      </div>
-
-      {/* Content */}
-      <div className="relative min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-md w-full bg-white/10 backdrop-blur-sm rounded-2xl p-12 shadow-2xl border border-white/10">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-white mb-2">Welcome Back</h2>
-            <p className="text-blue-200">Sign in to your DevOps Pipeline Manager account</p>
-          </div>
-          
-          {successMessage && (
-            <div className="mb-4 p-3 bg-green-500/20 border border-green-500 rounded-lg text-green-200 text-sm">
-              {successMessage}
-            </div>
-          )}
-          
-          {error && (
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm">
-              {error}
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="block text-white/90 text-sm font-medium">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 text-white placeholder-gray-400 border border-white/10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
-                placeholder="Enter your email"
-                required
-              />
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 font-sans">
+      <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16">
+        <div className="max-w-6xl w-full flex flex-col lg:flex-row gap-12">
+          {/* Left Section: ShipTogether Benefits */}
+          <motion.div
+            className="lg:w-1/2 flex flex-col justify-center space-y-8"
+            variants={contentVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="text-center lg:text-left">
+              <h1 className="text-4xl sm:text-5xl font-bold text-white">
+                ShipTogether
+              </h1>
+              <p className="mt-4 text-xl sm:text-2xl text-blue-200 font-light">
+                Unify Your CI/CD, Empower Your Team
+              </p>
+              <p className="mt-6 text-base sm:text-lg text-white/90 leading-relaxed">
+                Access your ShipTogether account to streamline CI/CD workflows, collaborate with your team, and deploy with confidence.
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-white/90 text-sm font-medium">Password</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 text-white placeholder-gray-400 border border-white/10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
-                placeholder="Enter Password"
-                required
-              />
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="bg-white/10 backdrop-blur-md p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 className="text-xl font-semibold text-white">Fast Deployments</h3>
+                <p className="mt-2 text-gray-200">
+                  Automate and accelerate your CI/CD pipelines for rapid delivery.
+                </p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 className="text-xl font-semibold text-white">Secure Access</h3>
+                <p className="mt-2 text-gray-200">
+                  Log in securely with role-based permissions and encryption.
+                </p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 className="text-xl font-semibold text-white">Unified Workflows</h3>
+                <p className="mt-2 text-gray-200">
+                  Manage all your CI/CD processes in one centralized platform.
+                </p>
+              </div>
             </div>
+          </motion.div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full group relative px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="relative z-10">
+          {/* Right Section: Login Form */}
+          <motion.div
+            className="lg:w-1/2 bg-white/5 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-12 border border-white/10"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="text-center mb-8">
+              <h2 className="text-4xl sm:text-5xl font-bold text-white mb-2">Welcome Back</h2>
+              <p className="text-xl sm:text-2xl text-blue-200 font-light">
+                Sign in to ShipTogether
+              </p>
+            </div>
+            
+            {successMessage && (
+              <div className="mb-6 p-3 bg-green-500/20 border border-green-500 rounded-lg text-green-200 text-sm text-center">
+                {successMessage}
+              </div>
+            )}
+            
+            {error && (
+              <div className="mb-6 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-200 text-sm text-center">
+                {error}
+              </div>
+            )}
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-white/90 text-sm font-medium">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-gray-400 border border-white/10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-white/90 text-sm font-medium">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-gray-400 border border-white/10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="Enter Password"
+                  required
+                />
+              </div>
+
+              <motion.button
+                type="submit"
+                disabled={loading}
+                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                variants={buttonVariants}
+                whileHover="hover"
+                whileTap="tap"
+              >
                 {loading ? 'Signing In...' : 'Sign In'}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-          </form>
+              </motion.button>
+            </form>
 
-          <p className="text-white/80 text-center mt-8">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200">
-              Register here
-            </Link>
-          </p>
+            <p className="text-white/80 text-center mt-8">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200">
+                Register here
+              </Link>
+            </p>
+          </motion.div>
         </div>
       </div>
     </div>
   );
 };
 
-export default Login; 
+export default Login;

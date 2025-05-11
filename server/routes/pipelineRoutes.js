@@ -1,40 +1,44 @@
 import express from 'express';
-import { auth } from '../middleware/auth.js';
 import {
   getPipelines,
   getPipeline,
   createPipeline,
   updatePipeline,
   deletePipeline,
+  getPipelineStats,
   startPipeline,
-  completePipeline,
-  getPipelineStats
+  completePipeline
 } from '../controllers/pipelineController.js';
+import { checkPipelineAccess, canViewPipelines } from '../middleware/pipelineAccess.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+// Apply authentication middleware to all routes
+router.use(protect);
+
+// Get all pipelines (with team-based access control)
+router.get('/', canViewPipelines, getPipelines);
+
 // Get pipeline statistics
-router.get('/stats', auth, getPipelineStats);
+router.get('/stats', getPipelineStats);
 
-// Get all pipelines with optional status filter
-router.get('/', auth, getPipelines);
+// Get a single pipeline (with team-based access control)
+router.get('/:id', canViewPipelines, getPipeline);
 
-// Get pipeline by ID
-router.get('/:id', auth, getPipeline);
+// Create a new pipeline
+router.post('/', createPipeline);
 
-// Create new pipeline
-router.post('/', auth, createPipeline);
+// Update a pipeline (with team-based access control)
+router.put('/:id', checkPipelineAccess('run'), updatePipeline);
 
-// Update pipeline
-router.put('/:id', auth, updatePipeline);
+// Delete a pipeline (with team-based access control)
+router.delete('/:id', checkPipelineAccess('delete'), deletePipeline);
 
-// Delete pipeline
-router.delete('/:id', auth, deletePipeline);
+// Start a pipeline (with team-based access control)
+router.post('/:id/start', checkPipelineAccess('run'), startPipeline);
 
-// Start pipeline
-router.post('/:id/start', auth, startPipeline);
-
-// Complete pipeline
-router.post('/:id/complete', auth, completePipeline);
+// Complete a pipeline (with team-based access control)
+router.post('/:id/complete', checkPipelineAccess('run'), completePipeline);
 
 export default router; 
