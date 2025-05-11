@@ -6,36 +6,18 @@ const pipelineSchema = new mongoose.Schema({
     required: [true, 'Pipeline name is required'],
     trim: true
   },
-  environment: {
-    type: String,
-    required: [true, 'Environment is required'],
-    enum: ['dev', 'production', 'devops', 'qa'],
-    default: 'dev'
-  },
   type: {
     type: String,
     required: [true, 'Pipeline type is required'],
     enum: ['simple', 'multi-branch'],
     default: 'simple'
   },
-  organization: {
-    id: {
-      type: String,
-      required: [true, 'Organization ID is required'],
-      trim: true
-    },
-    name: {
-      type: String,
-      required: [true, 'Organization name is required'],
-      trim: true
-    }
-  },
+  orgId: { type: String, required: true},
   team: {
     name: {
       type: String,
       required: [true, 'Team name is required'],
-      enum: ['development', 'devops', 'operations', 'qa'],
-      default: 'development'
+      enum: ['dev', 'devops', 'operations', 'qa']
     },
     email: {
       type: String,
@@ -246,6 +228,5 @@ pipelineSchema.index({ startedAt: 1 });
 pipelineSchema.index({ completedAt: 1 });
 pipelineSchema.index({ failedAt: 1 });
 pipelineSchema.index({ 'organization.id': 1 });
-pipelineSchema.index({ 'team.name': 1 });
 
 export default mongoose.model('Pipeline', pipelineSchema); 

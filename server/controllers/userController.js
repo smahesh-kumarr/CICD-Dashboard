@@ -15,11 +15,11 @@ export const registerUser = async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ $or: [{ orgId }, { email }] });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ 
         success: false, 
-        message: 'User with this organization ID or email already exists' 
+        message: 'User with this email already exists' 
       });
     }
 
@@ -35,7 +35,10 @@ export const registerUser = async (req, res) => {
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken({
+      id: user._id,
+      orgId: user.orgId
+    });
 
     res.status(201).json({
       success: true,
@@ -92,7 +95,10 @@ export const loginUser = async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken({
+      id: user._id,
+      orgId: user.orgId
+    });
 
     res.status(200).json({
       success: true,

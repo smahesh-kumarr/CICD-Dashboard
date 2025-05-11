@@ -3,7 +3,7 @@ import Credential from '../models/Credential.js';
 // Create a new credential
 export const createCredential = async (req, res) => {
   try {
-    console.log('Creating credential for user:', req.user._id);
+    console.log('Creating credential for org:', req.user.orgId);
     const { name, type, credentials } = req.body;
 
     // Validate required fields
@@ -65,7 +65,7 @@ export const createCredential = async (req, res) => {
       name,
       type,
       credentials: {},
-      createdBy: req.user._id
+      orgId: req.user.orgId
     };
 
     // Only include the fields that are defined in the credentials object
@@ -93,11 +93,11 @@ export const createCredential = async (req, res) => {
   }
 };
 
-// Get all credentials for a user
+// Get all credentials for an organization
 export const getCredentials = async (req, res) => {
   try {
-    console.log('Getting credentials for user:', req.user._id);
-    const credentials = await Credential.find({ createdBy: req.user._id });
+    console.log('Getting credentials for org:', req.user.orgId);
+    const credentials = await Credential.find({ orgId: req.user.orgId });
     console.log('Found credentials:', credentials);
 
     res.status(200).json({
@@ -119,7 +119,7 @@ export const getCredentials = async (req, res) => {
 export const getCredentialsByType = async (req, res) => {
   try {
     const { type } = req.params;
-    console.log('Getting credentials for user:', req.user._id, 'type:', type);
+    console.log('Getting credentials for org:', req.user.orgId, 'type:', type);
 
     // Validate credential type
     const validTypes = ['github', 'docker', 'aws', 'jenkins', 'kubernetes'];
@@ -131,7 +131,7 @@ export const getCredentialsByType = async (req, res) => {
     }
 
     const credentials = await Credential.find({ 
-      createdBy: req.user._id,
+      orgId: req.user.orgId,
       type: type 
     });
     console.log('Found credentials:', credentials);
@@ -156,7 +156,7 @@ export const updateCredential = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, credentials } = req.body;
-    console.log('Updating credential:', id, 'for user:', req.user._id);
+    console.log('Updating credential:', id, 'for org:', req.user.orgId);
 
     // Validate required fields
     if (!name || !credentials) {
@@ -169,7 +169,7 @@ export const updateCredential = async (req, res) => {
     // Find the existing credential to get its type
     const existingCredential = await Credential.findOne({ 
       _id: id, 
-      createdBy: req.user._id 
+      orgId: req.user.orgId 
     });
 
     if (!existingCredential) {
@@ -225,7 +225,7 @@ export const updateCredential = async (req, res) => {
     });
 
     const credential = await Credential.findOneAndUpdate(
-      { _id: id, createdBy: req.user._id },
+      { _id: id, orgId: req.user.orgId },
       updateData,
       { new: true, runValidators: true }
     );
@@ -250,11 +250,11 @@ export const updateCredential = async (req, res) => {
 export const deleteCredential = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('Deleting credential:', id, 'for user:', req.user._id);
+    console.log('Deleting credential:', id, 'for org:', req.user.orgId);
 
     const credential = await Credential.findOneAndDelete({ 
       _id: id, 
-      createdBy: req.user._id 
+      orgId: req.user.orgId 
     });
     
     if (!credential) {

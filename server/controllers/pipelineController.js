@@ -1,12 +1,13 @@
 import Pipeline from '../models/Pipeline.js';
 import Credential from '../models/Credential.js';
+import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
 
 // Get all pipelines with optional status filter
 export const getPipelines = async (req, res) => {
   try {
     const { status } = req.query;
-    const query = { createdBy: req.user.id };
-    
+    const query = { orgId: req.user.orgId };
     if (status) {
       query.status = status;
     }
@@ -39,7 +40,7 @@ export const getPipeline = async (req, res) => {
   try {
     const pipeline = await Pipeline.findOne({
       _id: req.params.id,
-      createdBy: req.user.id
+      orgId: req.user.orgId
     })
       .populate('github.credentialId')
       .populate('docker.credentialId')
@@ -74,10 +75,7 @@ export const createPipeline = async (req, res) => {
   try {
     const {
       name,
-      environment,
       type,
-      organization,
-      team,
       github,
       docker,
       aws,
@@ -85,27 +83,30 @@ export const createPipeline = async (req, res) => {
       kubernetes
     } = req.body;
 
+    // Get orgId from token
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const orgId = decoded.orgId;
+
+    if (!orgId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Organization ID not found in token'
+      });
+    }
+
     // Validate required fields
-    if (!name || !environment || !type || !organization || !team || !github) {
+    if (!name || !type || !github) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields'
-      });
-    }
-
-    // Validate organization fields
-    if (!organization.id || !organization.name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Organization ID and name are required'
-      });
-    }
-
-    // Validate team fields
-    if (!team.name || !team.email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Team name and email are required'
       });
     }
 
@@ -114,6 +115,15 @@ export const createPipeline = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'GitHub credential, repository, and branches are required'
+      });
+    }
+
+    // Get user details to set team information
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
@@ -167,21 +177,34 @@ export const createPipeline = async (req, res) => {
       }
     }
 
-    // Create the pipeline
-    const pipeline = new Pipeline({
+    // Create the pipeline with team information from user
+    const pipelineData = {
       name,
-      environment,
       type,
-      organization,
-      team,
+      orgId,
+      team: {
+        name: user.team,
+        email: user.email
+      },
       github,
-      docker,
-      aws,
-      sonarqube,
-      kubernetes,
       createdBy: req.user._id,
-    });
+    };
 
+    // Only add optional credentials if they are provided
+    if (docker?.credentialId) {
+      pipelineData.docker = docker;
+    }
+    if (aws?.credentialId) {
+      pipelineData.aws = aws;
+    }
+    if (sonarqube?.credentialId) {
+      pipelineData.sonarqube = sonarqube;
+    }
+    if (kubernetes?.credentialId) {
+      pipelineData.kubernetes = kubernetes;
+    }
+
+    const pipeline = new Pipeline(pipelineData);
     await pipeline.save();
 
     res.status(201).json({
@@ -204,10 +227,7 @@ export const updatePipeline = async (req, res) => {
   try {
     const {
       name,
-      environment,
       type,
-      organization,
-      team,
       github,
       docker,
       aws,
@@ -226,10 +246,7 @@ export const updatePipeline = async (req, res) => {
 
     // Update fields
     if (name) pipeline.name = name;
-    if (environment) pipeline.environment = environment;
     if (type) pipeline.type = type;
-    if (organization) pipeline.organization = organization;
-    if (team) pipeline.team = team;
     if (github) pipeline.github = github;
     if (docker) pipeline.docker = docker;
     if (aws) pipeline.aws = aws;
@@ -284,21 +301,21 @@ export const deletePipeline = async (req, res) => {
 // Get pipeline statistics
 export const getPipelineStats = async (req, res) => {
   try {
-    const totalPipelines = await Pipeline.countDocuments({ createdBy: req.user.id });
+    const totalPipelines = await Pipeline.countDocuments({ orgId: req.user.orgId });
     const activePipelines = await Pipeline.countDocuments({ 
-      createdBy: req.user.id,
+      orgId: req.user.orgId,
       status: 'active' 
     });
     const createdPipelines = await Pipeline.countDocuments({ 
-      createdBy: req.user.id,
+      orgId: req.user.orgId,
       status: 'created' 
     });
     const completedPipelines = await Pipeline.countDocuments({ 
-      createdBy: req.user.id,
+      orgId: req.user.orgId,
       status: 'completed' 
     });
     const failedPipelines = await Pipeline.countDocuments({ 
-      createdBy: req.user.id,
+      orgId: req.user.orgId,
       status: 'failed' 
     });
 
@@ -326,7 +343,7 @@ export const startPipeline = async (req, res) => {
   try {
     const pipeline = await Pipeline.findOne({
       _id: req.params.id,
-      createdBy: req.user.id
+      orgId: req.user.orgId
     });
 
     if (!pipeline) {
@@ -387,7 +404,7 @@ export const completePipeline = async (req, res) => {
   try {
     const pipeline = await Pipeline.findOne({
       _id: req.params.id,
-      createdBy: req.user.id
+      orgId: req.user.orgId
     });
 
     if (!pipeline) {

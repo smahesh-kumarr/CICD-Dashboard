@@ -27,16 +27,7 @@ const CreatePipeline = () => {
   
   const [formData, setFormData] = useState({
     name: '',
-    environment: 'dev',
     type: 'simple',
-    organization: {
-      id: '',
-      name: ''
-    },
-    team: {
-      name: 'development',
-      email: ''
-    },
     github: {
       credentialId: '',
       repository: '',
@@ -147,24 +138,74 @@ const CreatePipeline = () => {
 
     try {
       const token = localStorage.getItem('token');
+      console.log('Token:', token);
+
       if (!token) {
         throw new Error('Not authenticated');
       }
 
-      // Validate organization and team fields
-      if (!formData.organization.id || !formData.organization.name || !formData.team.email) {
-        setError('Organization and team details are required');
+      // Validate required fields
+      if (!formData.name || !formData.type) {
+        setError('Pipeline name and type are required');
         setLoading(false);
         return;
       }
 
+      // Validate GitHub fields
+      if (!formData.github?.credentialId || !formData.github?.repository) {
+        setError('GitHub credential and repository are required');
+        setLoading(false);
+        return;
+      }
+
+      // Create a clean version of formData without empty credential IDs
+      const cleanFormData = {
+        name: formData.name,
+        type: formData.type,
+        github: {
+          credentialId: formData.github.credentialId,
+          repository: formData.github.repository,
+          jenkinsfilePath: formData.github.jenkinsfilePath || 'Jenkinsfile',
+          branches: Array.isArray(formData.github.branches) ? formData.github.branches : [formData.github.branches]
+        }
+      };
+
+      // Only add optional credentials if they are provided and enabled
+      if (formData.docker?.build && formData.docker?.credentialId) {
+        cleanFormData.docker = {
+          credentialId: formData.docker.credentialId,
+          registry: formData.docker.registry
+        };
+      }
+
+      if (formData.continuousDeployment?.enabled && formData.continuousDeployment?.credentialId) {
+        cleanFormData.kubernetes = {
+          credentialId: formData.continuousDeployment.credentialId,
+          namespace: formData.continuousDeployment.namespace
+        };
+      }
+
+      if (formData.security?.staticAnalysis?.enabled && formData.security?.staticAnalysis?.credentialId) {
+        cleanFormData.sonarqube = {
+          credentialId: formData.security.staticAnalysis.credentialId
+        };
+      }
+
+      console.log('Making API call to:', `${API_BASE_URL}/pipelines`);
+      console.log('Request payload:', JSON.stringify(cleanFormData, null, 2));
+
       const response = await axios.post(
         `${API_BASE_URL}/pipelines`,
-        formData,
+        cleanFormData,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
       );
+
+      console.log('Response received:', response.data);
 
       if (response.data.success) {
         navigate('/dashboard');
@@ -172,8 +213,23 @@ const CreatePipeline = () => {
         setError(response.data.message || 'Failed to create pipeline');
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to create pipeline');
-      console.error('Error creating pipeline:', error);
+      console.error('Full error object:', error);
+      console.error('Error response:', error.response);
+      console.error('Error request:', error.request);
+      console.error('Error config:', error.config);
+      
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+        setError(error.response.data.message || 'Failed to create pipeline');
+      } else if (error.request) {
+        console.error('No response received from server');
+        setError('No response received from server. Please check if the server is running.');
+      } else {
+        console.error('Error setting up request:', error.message);
+        setError('Failed to create pipeline: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -401,80 +457,6 @@ const CreatePipeline = () => {
                     />
                   </div>
 
-                  {/* Organization Details */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Organization ID *</label>
-                      <input
-                        type="text"
-                        name="organization.id"
-                        value={formData.organization.id}
-                        onChange={handleChange}
-                        required
-                        className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                        placeholder="e.g., org_123"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name *</label>
-                      <input
-                        type="text"
-                        name="organization.name"
-                        value={formData.organization.name}
-                        onChange={handleChange}
-                        required
-                        className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                        placeholder="e.g., Acme Corp"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Team Details */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Team *</label>
-                      <select
-                        name="team.name"
-                        value={formData.team.name}
-                        onChange={handleChange}
-                        required
-                        className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm bg-white"
-                      >
-                        <option value="development">Development</option>
-                        <option value="devops">DevOps</option>
-                        <option value="operations">Operations</option>
-                        <option value="qa">QA</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Team Email *</label>
-                      <input
-                        type="email"
-                        name="team.email"
-                        value={formData.team.email}
-                        onChange={handleChange}
-                        required
-                        className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                        placeholder="team@organization.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Environment *</label>
-                    <select
-                      name="environment"
-                      value={formData.environment}
-                      onChange={handleChange}
-                      required
-                      className="block w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm bg-white"
-                    >
-                      <option value="dev">Development</option>
-                      <option value="production">Production</option>
-                      <option value="devops">DevOps</option>
-                      <option value="qa">QA</option>
-                    </select>
-                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Pipeline Type</label>
                     <div className="grid grid-cols-2 gap-4 mt-2">

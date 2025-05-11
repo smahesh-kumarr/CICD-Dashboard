@@ -14,11 +14,11 @@ app.use(cors());
 app.use(express.json());
 
 // Configure morgan logging
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
+app.use(morgan('dev'));
+// if (process.env.NODE_ENV === 'development') {
+// } else {
+//   app.use(morgan('combined'));
+// }
 
 // Routes
 app.use('/api/users', userRoutes);

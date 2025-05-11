@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { VscSourceControl, VscPlay, VscDebugStart, VscTrash, VscRefresh } from 'react-icons/vsc';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
 const PipelineList = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('ALL');
   const [pipelines, setPipelines] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ const PipelineList = () => {
             </button>
             <button 
               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 transition-colors duration-200"
-              onClick={() => window.location.href = '/create-pipeline'}
+              onClick={() => navigate('/create-pipeline')}
             >
               <VscPlay />
               New Pipeline

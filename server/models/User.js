@@ -6,7 +6,6 @@ const userSchema = new mongoose.Schema({
   orgId: {
     type: String,
     required: [true, 'Organization ID is required'],
-    unique: true,
     trim: true
   },
   email: {
@@ -38,6 +37,10 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+// Drop existing indexes and create new ones
+userSchema.index({ orgId: 1 }, { unique: false });
+userSchema.index({ email: 1 }, { unique: true });
+
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
@@ -57,5 +60,12 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 const User = mongoose.model('User', userSchema);
+
+// Drop existing indexes if they exist
+User.collection.dropIndexes().catch(err => {
+  if (err.code !== 26) { // Ignore error if collection doesn't exist
+    console.error('Error dropping indexes:', err);
+  }
+});
 
 export default User; 

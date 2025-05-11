@@ -97,6 +97,10 @@ const credentialSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  orgId: {
+    type: String,
+    required: true
   }
 }, {
   timestamps: true
