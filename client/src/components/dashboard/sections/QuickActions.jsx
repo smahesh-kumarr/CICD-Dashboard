@@ -11,13 +11,13 @@ const QuickActions = ({ onNavigateToPlugins }) => {
       color: 'from-blue-500 to-blue-600',
       linkTo: '/create-pipeline'
     },
-    {
-      id: 'categories',
-      name: 'Pipeline Categories',
-      icon: <VscSourceControl className="text-2xl" />,
-      color: 'from-purple-500 to-purple-600',
-      onClick: () => console.log('Pipeline Categories clicked')
-    },
+    // {
+    //   id: 'categories',
+    //   name: 'Pipeline Categories',
+    //   icon: <VscSourceControl className="text-2xl" />,
+    //   color: 'from-purple-500 to-purple-600',
+    //   onClick: () => console.log('Pipeline Categories clicked')
+    // },
     {
       id: 'credentials',
       name: 'Manage Credentials',
@@ -37,7 +37,7 @@ const QuickActions = ({ onNavigateToPlugins }) => {
       name: 'Settings',
       icon: <VscSettingsGear className="text-2xl" />,
       color: 'from-gray-500 to-gray-600',
-      onClick: () => console.log('Settings clicked')
+      linkTo: '/settings'
     }
   ];
 
@@ -64,4 +64,4 @@ const QuickActions = ({ onNavigateToPlugins }) => {
   );
 };
 
-export default QuickActions; 
+export default QuickActions;

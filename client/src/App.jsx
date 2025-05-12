@@ -6,6 +6,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import PluginDetail from './components/dashboard/sections/PluginDetail';
 import CreatePipeline from './pages/CreatePipeline';
 import ManageCredentials from './pages/ManageCredentials';
+import Settings from './pages/Settings';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -86,6 +87,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ManageCredentials />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           }
         />

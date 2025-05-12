@@ -2,6 +2,7 @@ import Pipeline from '../models/Pipeline.js';
 import Credential from '../models/Credential.js';
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
+import PipelineActivity from '../models/PipelineActivity.js';
 
 // Get all pipelines with optional status filter
 export const getPipelines = async (req, res) => {
@@ -366,16 +367,50 @@ export const startPipeline = async (req, res) => {
       pipeline.failureReason = 'Pipeline was restarted while active';
       await pipeline.save();
 
+      // Create activity record for failed pipeline
+      await PipelineActivity.create({
+        pipelineName: pipeline.name,
+        pipelineId: pipeline._id,
+        team: pipeline.team,
+        triggeredBy: {
+          userId: req.user._id,
+          name: req.user.fullName,
+          email: req.user.email
+        },
+        triggerDate: new Date(),
+        startTime: new Date(),
+        completionTime: new Date(),
+        state: 'failed',
+        failureReason: 'Pipeline was restarted while active',
+        orgId: pipeline.orgId
+      });
+
       return res.status(400).json({
         success: false,
         message: 'Pipeline was restarted while active and has been marked as failed'
       });
     }
 
-    // Start the pipeline
+    // Update pipeline status to active
     pipeline.status = 'active';
     pipeline.startedAt = new Date();
     await pipeline.save();
+
+    // Create activity record for started pipeline
+    const activity = await PipelineActivity.create({
+      pipelineName: pipeline.name,
+      pipelineId: pipeline._id,
+      team: pipeline.team,
+      triggeredBy: {
+        userId: req.user._id,
+        name: req.user.fullName,
+        email: req.user.email
+      },
+      triggerDate: new Date(),
+      startTime: new Date(),
+      state: 'success',
+      orgId: pipeline.orgId
+    });
 
     // Simulate pipeline completion after 30 seconds
     setTimeout(async () => {
@@ -385,6 +420,10 @@ export const startPipeline = async (req, res) => {
           updatedPipeline.status = 'completed';
           updatedPipeline.completedAt = new Date();
           await updatedPipeline.save();
+
+          // Update activity record with completion time
+          activity.completionTime = new Date();
+          await activity.save();
         }
       } catch (error) {
         console.error('Error completing pipeline:', error);
@@ -400,7 +439,8 @@ export const startPipeline = async (req, res) => {
     console.error('Error starting pipeline:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to start pipeline'
+      message: 'Failed to start pipeline',
+      error: error.message
     });
   }
 };
@@ -443,4 +483,4 @@ export const completePipeline = async (req, res) => {
       message: 'Failed to complete pipeline'
     });
   }
-}; 
+};
