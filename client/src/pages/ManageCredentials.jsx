@@ -60,7 +60,7 @@ const credentialTypes = {
 };
 
 // API base URL
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Function to fetch credentials from API
 const fetchCredentialsFromAPI = async (token) => {
@@ -576,4 +576,4 @@ function ManageCredentials() {
   );
 }
 
-export default ManageCredentials; 
+export default ManageCredentials;

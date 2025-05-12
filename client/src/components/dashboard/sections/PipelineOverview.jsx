@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { VscGitPullRequest, VscRefresh } from 'react-icons/vsc';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// Remove duplicate declaration at bottom of file
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const PipelineOverview = () => {
   const [stats, setStats] = useState({
@@ -142,4 +143,4 @@ const PipelineOverview = () => {
   );
 };
 
-export default PipelineOverview; 
+export default PipelineOverview;

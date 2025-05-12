@@ -26,7 +26,14 @@ const Settings = () => {
         }
 
         // Fetch current user details
-        const userResponse = await axios.get('http://localhost:5000/api/users/me', {
+        const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+        // Update the API calls to use API_BASE_URL
+        const userResponse = await axios.get(`${API_BASE_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const orgResponse = await axios.get(`${API_BASE_URL}/users/organization/${user.orgId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setCurrentUser(userResponse.data.user);
