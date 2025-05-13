@@ -7,7 +7,8 @@ import {
   deletePipeline,
   getPipelineStats,
   startPipeline,
-  completePipeline
+  completePipeline,
+  getRecentActivities
 } from '../controllers/pipelineController.js';
 import { checkPipelineAccess, canViewPipelines } from '../middleware/pipelineAccess.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -41,4 +42,7 @@ router.post('/:id/start', checkPipelineAccess('run'), startPipeline);
 // Complete a pipeline (with team-based access control)
 router.post('/:id/complete', checkPipelineAccess('run'), completePipeline);
 
-export default router; 
+// Get recent pipeline activities
+router.get('/activities/recent', protect, getRecentActivities);
+
+export default router;

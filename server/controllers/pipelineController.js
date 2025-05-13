@@ -484,3 +484,26 @@ export const completePipeline = async (req, res) => {
     });
   }
 };
+
+// Get recent pipeline activities
+export const getRecentActivities = async (req, res) => {
+  try {
+    const query = { orgId: req.user.orgId };
+    
+    const activities = await PipelineActivity.find(query)
+      .sort({ triggerDate: -1 })
+      .limit(5);
+
+    res.json({
+      success: true,
+      data: activities
+    });
+  } catch (error) {
+    console.error('Error getting recent activities:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get recent activities',
+      error: error.message
+    });
+  }
+};

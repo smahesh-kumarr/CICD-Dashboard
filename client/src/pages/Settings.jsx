@@ -26,23 +26,16 @@ const Settings = () => {
         }
 
         // Fetch current user details
-        const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-        // Update the API calls to use API_BASE_URL
-        const userResponse = await axios.get(`${API_BASE_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        const orgResponse = await axios.get(`${API_BASE_URL}/users/organization/${user.orgId}`, {
+        const userResponse = await axios.get(`${import.meta.env.VITE_API_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setCurrentUser(userResponse.data.user);
 
-        // Fetch users in the same organization
-        const orgResponse = await axios.get(`http://localhost:5000/api/users/organization/${user.orgId}`, {
+        // Fetch users in the same organization (renamed variable to avoid duplicate declaration)
+        const organizationResponse = await axios.get(`${import.meta.env.VITE_API_URL}/users/organization/${user.orgId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setOrgUsers(orgResponse.data.users);
+        setOrgUsers(organizationResponse.data.users);
       } catch (error) {
         setError(error.response?.data?.message || 'Failed to fetch user data');
       } finally {

@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, 'Email is required'],
-    unique: true,
+    unique: true,  // Remove this line since we're defining the index explicitly below
     lowercase: true,
     validate: [validator.isEmail, 'Please provide a valid email']
   },
@@ -37,8 +37,8 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Drop existing indexes and create new ones
-userSchema.index({ orgId: 1 }, { unique: false });
+// Define indexes after schema definition
+userSchema.index({ orgId: 1 });  // Remove {unique: false} as it's the default
 userSchema.index({ email: 1 }, { unique: true });
 
 // Hash password before saving
@@ -68,4 +68,4 @@ User.collection.dropIndexes().catch(err => {
   }
 });
 
-export default User; 
+export default User;
