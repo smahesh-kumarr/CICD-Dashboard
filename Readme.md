@@ -6,6 +6,9 @@ This guide details the deployment of a 3-tier MERN stack application on Amazon W
 ## 🏗️ High-Level Architecture
 The application follows a 3-tier architecture:
 
+### Architecture Diagram 🗂️
+
+![MERN App Architecture](./image.png)
 - User Access 💻: Users access the frontend via `maheshawsdevops.le-crowninteriors.com`
 - Route 53 🌐: Manages DNS for the subdomain
 - Public ALB (web-alb) 🛡️: Routes public traffic to the web tier
@@ -15,12 +18,8 @@ The application follows a 3-tier architecture:
 - DocumentDB 📊: Stores application data in private subnets
 - VPC 🌳: Isolates resources with public and private subnets
 
-### Architecture Diagram 🗂️
-
-![MERN App Architecture](/image.png)
-
+![Ship Together](./image-2.png)
 ## 🧩 Components
-
 ### 1. Domain and DNS 🌐
 - **Provider**: Namecheap 🏠
 - **Main domain**: le-crowninteriors.com (used for another project)
@@ -69,7 +68,7 @@ The application follows a 3-tier architecture:
 - Outbound: Port 27017 to docdb-sg, all to 0.0.0.0/0 (via NAT Gateway)
 
 ### 6. Database 📊
-- **DocumentDB**: Cluster in private subnets 10.0.5.0/24, 10.0.6.0/24
+- **DocumentDB**: Cluster in private subnets 10.0.3.0/24, 10.0.4.0/24
 
 **Security Group**: docdb-sg
 - Inbound: Port 27017 from app-tier-ec2-sg
@@ -77,7 +76,7 @@ The application follows a 3-tier architecture:
 ### 7. Network Architecture 🌳
 - **VPC**: mern-vpc (CIDR: 10.0.0.0/16)
 - **Public Subnets**: 10.0.1.0/24 (us-east-1a), 10.0.2.0/24 (us-east-1b) host Public ALB, Internet Gateway, NAT Gateway 🌍
-- **Private Subnets**: 10.0.3.0/24, 10.0.4.0/24 (web/app tiers), 10.0.5.0/24, 10.0.6.0/24 (DocumentDB) 🏠
+- **Private Subnets**: 10.0.3.0/24, 10.0.4.0/24 (web/app tiers) & (DocumentDB) 🏠
 
 **Route Tables**:
 - Public Subnets: Route 0.0.0.0/0 to Internet Gateway 📶
@@ -108,13 +107,9 @@ The application follows a 3-tier architecture:
   - 10.0.1.0/24 in us-east-1a
   - 10.0.2.0/24 in us-east-1b
 
-- Private Subnets (Web/App):
+- Private Subnets (Web/App) & (DocumentDB):
   - 10.0.3.0/24 in us-east-1a
   - 10.0.4.0/24 in us-east-1b
-
-- Private Subnets (DocumentDB):
-  - 10.0.5.0/24 in us-east-1a
-  - 10.0.6.0/24 in us-east-1b
 
 **NAT Gateway**:
 - Deploy in one public subnet (e.g., 10.0.1.0/24)
@@ -296,4 +291,3 @@ pm2 restart react-app
 
 
 ### 🛠️ Proof of Concept
-
