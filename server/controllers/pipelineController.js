@@ -280,7 +280,13 @@ export const updatePipeline = async (req, res) => {
 // Delete a pipeline
 export const deletePipeline = async (req, res) => {
   try {
-    const pipeline = await Pipeline.findById(req.params.id);
+    const pipelineId = req.params.id;
+    
+    // First, check if the pipeline exists and belongs to the user's organization
+    const pipeline = await Pipeline.findOne({
+      _id: pipelineId,
+      orgId: req.user.orgId
+    });
 
     if (!pipeline) {
       return res.status(404).json({
@@ -289,11 +295,15 @@ export const deletePipeline = async (req, res) => {
       });
     }
 
-    await pipeline.remove();
+    // Delete associated pipeline activities first
+    await PipelineActivity.deleteMany({ pipelineId });
+
+    // Then delete the pipeline
+    await Pipeline.findByIdAndDelete(pipelineId);
 
     res.json({
       success: true,
-      message: 'Pipeline deleted successfully'
+      message: 'Pipeline and associated activities deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting pipeline:', error);

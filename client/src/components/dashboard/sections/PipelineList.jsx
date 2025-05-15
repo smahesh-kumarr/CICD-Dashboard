@@ -122,16 +122,33 @@ const PipelineList = () => {
         return;
       }
 
+      setLoading(true);
       const response = await axios.delete(`${API_BASE_URL}/pipelines/${pipelineId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {
         setPipelines(prev => prev.filter(p => p._id !== pipelineId));
+        // Show success message
+        setPipelineErrors(prev => ({ 
+          ...prev, 
+          [pipelineId]: null 
+        }));
+      } else {
+        setPipelineErrors(prev => ({ 
+          ...prev, 
+          [pipelineId]: response.data.message || 'Failed to delete pipeline' 
+        }));
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to delete pipeline');
+      const errorMessage = error.response?.data?.message || 'Failed to delete pipeline';
+      setPipelineErrors(prev => ({ 
+        ...prev, 
+        [pipelineId]: errorMessage 
+      }));
       console.error('Error deleting pipeline:', error);
+    } finally {
+      setLoading(false);
     }
   };
 

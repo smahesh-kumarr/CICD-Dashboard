@@ -4,7 +4,7 @@ import Credential from '../models/Credential.js';
 export const createCredential = async (req, res) => {
   try {
     console.log('Creating credential for org:', req.user.orgId);
-    const { name, type, credentials } = req.body;
+    const { name, type, credentials, createdBy } = req.body;
 
     // Validate required fields
     if (!name || !type || !credentials) {
@@ -65,7 +65,8 @@ export const createCredential = async (req, res) => {
       name,
       type,
       credentials: {},
-      orgId: req.user.orgId
+      orgId: req.user.orgId,
+      createdBy: req.user._id  // Use the authenticated user's ID
     };
 
     // Only include the fields that are defined in the credentials object
@@ -278,4 +279,4 @@ export const deleteCredential = async (req, res) => {
       error: error.message
     });
   }
-}; 
+};

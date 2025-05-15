@@ -172,6 +172,9 @@ function ManageCredentials() {
     setIsLoading(true);
     setError(null);
 
+    // Get the user data from localStorage
+    const userData = JSON.parse(localStorage.getItem('user'));
+    
     // Create a clean credentials object with only the required fields
     const cleanCredentials = {};
     credentialTypes[credType].fields.forEach(field => {
@@ -179,13 +182,14 @@ function ManageCredentials() {
         cleanCredentials[field] = dynamicFields[field];
       }
     });
-
+  
     const newCredential = {
       name: credName,
       type: credType,
-      credentials: cleanCredentials
+      credentials: cleanCredentials,
+      createdBy: userData.id  // Add the user ID here
     };
-
+  
     try {
       const response = await axios.post(
         `${API_URL}/credentials`,
