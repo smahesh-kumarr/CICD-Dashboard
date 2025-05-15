@@ -18,7 +18,7 @@ The application follows a 3-tier architecture:
 - DocumentDB 📊: Stores application data in private subnets
 - VPC 🌳: Isolates resources with public and private subnets
 
-![Ship Together](./image-2.png)
+![Ship Together](./my-image-2.png)
 ## 🧩 Components
 ### 1. Domain and DNS 🌐
 - **Provider**: Namecheap 🏠
